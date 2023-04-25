@@ -33,7 +33,7 @@ function init() {
         "add a department",
         "add a role",
         "update an employee role",
-        "exit"
+        "exit",
       ],
     },
   ];
@@ -120,12 +120,18 @@ const addDepartment = () => {
     ])
     .then((response) => {
       db.query(
-        "INSERT INTO departments(dept_name) VALUES (?)",
+        "INSERT INTO department (dept_name) VALUES (?)",
         response.newDepartment,
         (error, res) => {
-          console.log(
-            "New Department " + response.newDepartment + " added to database."
-          );
+          if (error) {
+            throw error;
+          }
+          if (res) {
+            console.log(
+              //if we want to see whole object use JSON.stringfy(res)
+              "New Department " + response.newDepartment + " added to database. " +res.affectedRows+ " is added."
+            );
+          }
           init();
         }
       );
@@ -136,16 +142,17 @@ const addDepartment = () => {
 const addRole = () => {
   const departments = [];
 
-  db.query("SELECT * FROM departments", (error, res) => {
-    res.forEach(dept => {
+  db.query("SELECT * FROM department", (error, res) => {
+   console.log(JSON.stringify(res));
+    res.forEach((dept) => {
       let dep = {
-          name: dept.name,
-          value: dept.id
-      }
-      departments.push(dep)
-  })
-  });
-  inquirer
+        name: dept.dept_name,
+        value: dept.id,
+      };
+      departments.push(dep);
+    });
+
+    inquirer
     .prompt([
       {
         type: "input",
@@ -160,20 +167,22 @@ const addRole = () => {
       {
         type: "list",
         message: "what is the department for this role? ",
-        choices: departments,
+        name: 'selectedDept',
+        choices: departments
       },
     ])
     .then((response) => {
       db.query(
         "INSERT INTO roles (title, salary, department_id) VALUES (?)",
-        [response.newRole, response.newDepartment, response.newSalary],
+        [[response.newRole, response.newSalary, response.selectedDept]],
         (error, response) => {
           if (error) throw error;
-          console.log(`${response.newRole} added`);
+          console.log(JSON.stringify(response)+ " added ");
           init();
         }
       );
     });
+  });
 };
 
 //adding new employee to database
@@ -193,10 +202,10 @@ const addEmployee = () => {
   const managers = [];
   db.query("SELECT * FROM employee", (error, res) => {
     if (error) throw error;
-    res.forEach((role) => {
+    res.forEach((emp) => {
       let manager = {
-        name: role.firstName + " " + role.lastName,
-        value: role.id,
+        name: emp.firstName + " " + emp.lastName,
+        value: emp.id,
       };
       managers.push(manager);
     });
@@ -249,58 +258,57 @@ const addEmployee = () => {
 
 // function that will edit the employee
 const updateEmployee = () => {
-
   const employee = [];
   const roles = [];
   // retrieving the data for the employees table to use in the prompt
-  db.query('SELECT * FROM employee', (err, res) => {
+  db.query("SELECT * FROM employee", (err, res) => {
+    if (err) throw err;
+    res.forEach((role) => {
+      let manager = {
+        name: role.first_name + " " + role.last_name,
+        value: role.id,
+      };
+      employee.push(manager);
+    });
+    // retrieving the data for the roles table to use in the prompt
+    db.query("SELECT * FROM roles", (err, res) => {
       if (err) throw err;
-      res.forEach(role => {
-          let manager = {
-              name: role.first_name + ' ' + role.last_name,
-              value: role.id
-          }
-          employee.push(manager)
-      })
-      // retrieving the data for the roles table to use in the prompt
-      db.query('SELECT * FROM roles', (err, res) => {
-          if (err) throw err;
 
-          res.forEach(role => {
-              let editRole = {
-                  name: role.title,
-                  value: role.id
-              }
-              roles.push(editRole)
-          })
-      })
-      inquirer.prompt([
-          {
-              type: 'list',
-              name: 'employeeList',
-              message: 'Which employees role would you like to update?',
-              choices: employee,
-          },
-          {
-              type: 'list',
-              name: 'roleList',
-              message: 'Which role would you like to assign the selected employee?',
-              choices: roles,
-          }
-      ]).then((response) => {
-          const sql = `UPDATE employee SET role_id = ? WHERE id = ?`;
-          const obj = [response.roleList, response.employeeList];
-          
-          db.query(sql, obj, function (err) {
-              if (err) throw err;
-              console.log(`Successfully updated employees role!`);
-              init();
-          })
+      res.forEach((role) => {
+        let editRole = {
+          name: role.title,
+          value: role.id,
+        };
+        roles.push(editRole);
       });
-          
-      
-  })
-}
+    });
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "employeeList",
+          message: "Which employees role would you like to update?",
+          choices: employee,
+        },
+        {
+          type: "list",
+          name: "roleList",
+          message: "Which role would you like to assign the selected employee?",
+          choices: roles,
+        },
+      ])
+      .then((response) => {
+        const sql = `UPDATE employee SET role_id = ? WHERE id = ?`;
+        const obj = [response.roleList, response.employeeList];
+
+        db.query(sql, obj, function (err) {
+          if (err) throw err;
+          console.log(`Successfully updated employees role!`);
+          init();
+        });
+      });
+  });
+};
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
