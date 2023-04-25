@@ -11,3 +11,10 @@ Because this application won’t be deployed, you’ll also need to create a wal
 ## Demonstration Video
 
 ![Employee Tracker Demo](./video/Employe-tracker.gif)
+
+## Technology Used
+
+* [Node JS](https://www.w3schools.com/nodejs/nodejs_intro.asp)
+
+* [MySQL](https://www.w3schools.com/MySQL/default.asp)
+
