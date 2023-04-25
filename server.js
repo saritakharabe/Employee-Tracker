@@ -92,7 +92,7 @@ const viewDepartments = () => {
 
 //getting roles from database
 const viewRoles = () => {
-  db.query("SELECT * FROM roles", function (error, results) {
+  db.query("SELECT * FROM roles INNER JOIN department ON roles.department_id = department.id", function (error, results) {
     if (error) throw error;
     console.table(results);
     init();
@@ -151,7 +151,6 @@ const addRole = () => {
       };
       departments.push(dep);
     });
-
     inquirer
     .prompt([
       {
@@ -190,9 +189,10 @@ const addEmployee = () => {
   const roles = [];
   db.query("SELECT * FROM roles", (error, res) => {
     if (error) throw error;
+    //console.log(JSON.stringify(res));
     res.forEach((role) => {
       let newRole = {
-        name: role.name,
+        name: role.title,
         value: role.id,
       };
       roles.push(newRole);
@@ -202,16 +202,15 @@ const addEmployee = () => {
   const managers = [];
   db.query("SELECT * FROM employee", (error, res) => {
     if (error) throw error;
+    //console.log(JSON.stringify(res));
     res.forEach((emp) => {
       let manager = {
-        name: emp.firstName + " " + emp.lastName,
-        value: emp.id,
+        name: emp.first_name + " " + emp.last_name,
+        value: emp.manager_id,
       };
       managers.push(manager);
     });
-  });
-
-  inquirer
+    inquirer
     .prompt([
       {
         type: "input",
@@ -238,22 +237,23 @@ const addEmployee = () => {
     ])
     .then((response) => {
       db.query(
-        "INSERT INTO employee (first_name, last_name, role_id, manager_id)",
-        [
+        "INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?)",
+        [[
           response.firstName,
           response.lastName,
           response.roleList,
           response.managerList,
-        ],
+        ]],
         (error, response) => {
           if (error) throw error;
           console.log(
-            `Added ${response.firstName} ${response.lastName} added new employee to database`
+            `Added new employee to database`
           );
           init();
         }
       );
     });
+  });
 };
 
 // function that will edit the employee
